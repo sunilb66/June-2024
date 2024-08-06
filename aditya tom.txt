@@ -1,0 +1,83 @@
+#!/bin/bash
+
+
+#update binaries
+sudo apt-get update -y
+
+#git installation
+sudo apt-get install git
+git init
+
+#java installation
+sudo apt install default-jdk -y
+
+#maven installation
+sudo apt-get install maven -y
+
+
+#tomcat installation
+#download tomcat from internet use wget
+wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.91/bin/apache-tomcat-9.0.91.tar.gz
+#Unzip the downloaded file
+tar -xvzf apache-tomcat-9.0.91.tar.gz
+#After unzip delete unzip file
+rm -rf apache-tomcat-9.0.91.tar.gz
+#Now move the directory name to tomcat
+mv apache-tomcat-9.0.91 tomcat
+#Go to bin directory inside the tomcat and execute startup.sh
+sh tomcat/bin/startup.sh
+
+#clone source code to lacal repo
+git clone https://github.com/sunilb66/java-hello-world-with-maven
+
+cd /home/ubuntu/java-hello-world-with-maven
+
+#create artifacts and deploy in web server
+mvn clean install
+cd target
+cp /home/ubuntu/java-hello-world-with-maven/target/jb-hello-world-maven-0.2.0.jar /home/ubuntu/tomcat/webapps/
+
+#added users in tomcat
+users='<role rolename="admin"/>
+<role rolename="manager"/>
+<role rolename="admin-gui"/>
+<role rolename="manager-gui"/>
+<user username="admin" password="1234" roles="admin,manager,admin-gui,manager-gui"/>
+
+</tomcat-users>'
+
+sed -i '/tomcat-users>/d' /home/ubuntu/tomcat/conf/tomcat-users.xml
+echo "$users" >> /home/ubuntu/tomcat/conf/tomcat-users.xml
+
+#modify restrictions
+sed -e '/valve/s/^/<!--/g' -i /home/ubuntu/tomcat/webapps/manager/META-INF/context.xml
+sed -e '/Manager/s/^/-->/g' -i /home/ubuntu/tomcat/webapps/manager/META-INF/context.xml
+sed -e '/valve/s/^/<!--/g' -i /home/ubuntu/tomcat/webapps/host-manager/META-INF/context.xml
+sed -e '/Manager/s/^/-->/g' -i /home/ubuntu/tomcat/webapps/host-manager/META-INF/context.xml
+
+sh tomcat/bin/startup.sh
+
+echo " "
+echo " "
+echo "Deployed artifacts in web server"
+ls /home/ubuntu/tomcat/webapps/
+
+echo " "
+echo "tomcat version:"
+sh /home/ubuntu/tomcat/bin/version.sh | tail -8 |head -1
+echo " "
+echo "java version"
+java --version |head -1
+echo " "
+echo "git version"
+git --version
+echo " "
+echo "maven version"
+mvn --version | head -1
+echo " "
+echo ""
+pub=`curl ifconfig.me`
+echo ""
+echo "Tomcat URL"
+echo "http://$pub:8080"
+echo " "
